@@ -1,2 +1,6 @@
 # Use the 'create api' subcommand to add watches to this file.
+- group: workflow.apache.org
+  version: v1alpha1
+  kind: AirFlow
+  chart: helm-charts/airflow
 #+kubebuilder:scaffold:watch

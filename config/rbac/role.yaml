@@ -28,4 +28,45 @@ rules:
   verbs:
   - create
 
+##
+## Rules for workflow.apache.org/v1alpha1, Kind: AirFlow
+##
+- apiGroups:
+  - workflow.apache.org
+  resources:
+  - airflows
+  - airflows/status
+  - airflows/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- verbs:
+  - "*"
+  apiGroups:
+  - ""
+  resources:
+  - "configmaps"
+  - "secrets"
+  - "serviceaccounts"
+  - "services"
+- verbs:
+  - "*"
+  apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - "rolebindings"
+  - "roles"
+- verbs:
+  - "*"
+  apiGroups:
+  - "apps"
+  resources:
+  - "deployments"
+  - "statefulsets"
+
 #+kubebuilder:scaffold:rules

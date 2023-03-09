@@ -6,4 +6,12 @@ plugins:
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: airflow-hybrid-operator
 repo: github.com/example/airflow-hybrid-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  domain: apache.org
+  group: workflow
+  kind: AirFlow
+  version: v1alpha1
 version: "3"
