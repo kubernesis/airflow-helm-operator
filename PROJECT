@@ -1,0 +1,9 @@
+domain: example.com
+layout:
+- hybrid.helm.sdk.operatorframework.io/v1-alpha
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: airflow-hybrid-operator
+repo: github.com/example/airflow-hybrid-operator
+version: "3"
