@@ -1,4 +1,4 @@
-domain: example.com
+domain: apache.org
 layout:
 - hybrid.helm.sdk.operatorframework.io/v1-alpha
 plugins:
