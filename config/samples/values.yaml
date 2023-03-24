@@ -1,0 +1,12 @@
+rbac:
+  createSCCRoleBinding: true
+postgresql:
+  rbac:
+    create: true
+    rules:
+    - apiGroups: ["security.openshift.io"]
+      resources: ["securitycontextconstraints"]
+      resourceNames: ["anyuid"]
+      verbs: ["use"]
+  serviceAccount:
+    create: true

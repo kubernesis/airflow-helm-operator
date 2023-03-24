@@ -3,4 +3,13 @@
   version: v1alpha1
   kind: AirFlow
   chart: helm-charts/airflow
+  # not supported so need to bake these into the chart
+  # overrideValues:
+  #   rbac.createSCCRoleBinding: true
+  #   postgresql.rbac.create: true
+  #   postgresql.rbac.rules["apiGroups"]: ["security.openshift.io"]
+  #   postgresql.rbac.rules["resources"]: ["securitycontextconstraints"]
+  #   postgresql.rbac.rules["resourceNames"]: ["anyuid"]
+  #   postgresql.rbac.rules["verbs"]: ["use"]
+  #   postgresql.serviceAccount.create: true
 #+kubebuilder:scaffold:watch

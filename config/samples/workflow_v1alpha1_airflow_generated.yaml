@@ -1,0 +1,1247 @@
+apiVersion: workflow.apache.org/v1alpha1
+kind: AirFlow
+metadata:
+  name: airflow-sample
+spec:
+  # Default values copied from <project_dir>/helm-charts/airflow/values.yaml
+  affinity: {}
+  airflowConfigAnnotations: {}
+  airflowHome: /opt/airflow
+  airflowLocalSettings: |-
+    {{- if semverCompare ">=2.2.0" .Values.airflowVersion }}
+    {{- if not (or .Values.webserverSecretKey .Values.webserverSecretKeySecretName) }}
+    from airflow.www.utils import UIAlert
+  
+    DASHBOARD_UIALERTS = [
+      UIAlert(
+        'Usage of a dynamic webserver secret key detected. We recommend a static webserver secret key instead.'
+        ' See the <a href='
+        '"https://airflow.apache.org/docs/helm-chart/stable/production-guide.html#webserver-secret-key">'
+        'Helm Chart Production Guide</a> for more details.',
+        category="warning",
+        roles=["Admin"],
+        html=True,
+      )
+    ]
+    {{- end }}
+    {{- end }}
+  airflowPodAnnotations: {}
+  airflowVersion: 2.5.1
+  allowPodLaunching: true
+  cleanup:
+    affinity: {}
+    args:
+    - bash
+    - -c
+    - exec airflow kubernetes cleanup-pods --namespace={{ .Release.Namespace }}
+    command: null
+    enabled: false
+    env: []
+    failedJobsHistoryLimit: null
+    labels: {}
+    nodeSelector: {}
+    podAnnotations: {}
+    resources: {}
+    schedule: '*/15 * * * *'
+    securityContext: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    successfulJobsHistoryLimit: null
+    tolerations: []
+    topologySpreadConstraints: []
+  config:
+    celery:
+      flower_url_prefix: '{{ .Values.ingress.flower.path }}'
+      worker_concurrency: 16
+    celery_kubernetes_executor:
+      kubernetes_queue: kubernetes
+    core:
+      colored_console_log: "False"
+      dags_folder: '{{ include "airflow_dags" . }}'
+      executor: '{{ .Values.executor }}'
+      load_examples: "False"
+      remote_logging: '{{- ternary "True" "False" .Values.elasticsearch.enabled }}'
+    elasticsearch:
+      json_format: "True"
+      log_id_template: '{dag_id}_{task_id}_{execution_date}_{try_number}'
+    elasticsearch_configs:
+      max_retries: 3
+      retry_timeout: "True"
+      timeout: 30
+    kerberos:
+      ccache: '{{ .Values.kerberos.ccacheMountPath }}/{{ .Values.kerberos.ccacheFileName
+        }}'
+      keytab: '{{ .Values.kerberos.keytabPath }}'
+      principal: '{{ .Values.kerberos.principal }}'
+      reinit_frequency: '{{ .Values.kerberos.reinitFrequency }}'
+    kubernetes:
+      airflow_configmap: '{{ include "airflow_config" . }}'
+      airflow_local_settings_configmap: '{{ include "airflow_config" . }}'
+      multi_namespace_mode: '{{ ternary "True" "False" .Values.multiNamespaceMode }}'
+      namespace: '{{ .Release.Namespace }}'
+      pod_template_file: '{{ include "airflow_pod_template_file" . }}/pod_template_file.yaml'
+      worker_container_repository: '{{ .Values.images.airflow.repository | default .Values.defaultAirflowRepository
+        }}'
+      worker_container_tag: '{{ .Values.images.airflow.tag | default .Values.defaultAirflowTag
+        }}'
+    logging:
+      colored_console_log: "False"
+      remote_logging: '{{- ternary "True" "False" .Values.elasticsearch.enabled }}'
+    metrics:
+      statsd_host: '{{ printf "%s-statsd" .Release.Name }}'
+      statsd_on: '{{ ternary "True" "False" .Values.statsd.enabled }}'
+      statsd_port: 9125
+      statsd_prefix: airflow
+    scheduler:
+      run_duration: 41460
+      standalone_dag_processor: '{{ ternary "True" "False" .Values.dagProcessor.enabled
+        }}'
+      statsd_host: '{{ printf "%s-statsd" .Release.Name }}'
+      statsd_on: '{{ ternary "True" "False" .Values.statsd.enabled }}'
+      statsd_port: 9125
+      statsd_prefix: airflow
+    webserver:
+      enable_proxy_fix: "True"
+      rbac: "True"
+  createUserJob:
+    affinity: {}
+    annotations: {}
+    applyCustomEnv: true
+    args:
+    - bash
+    - -c
+    - |-
+      exec \
+      airflow {{ semverCompare ">=2.0.0" .Values.airflowVersion | ternary "users create" "create_user" }} "$@"
+    - --
+    - -r
+    - '{{ .Values.webserver.defaultUser.role }}'
+    - -u
+    - '{{ .Values.webserver.defaultUser.username }}'
+    - -e
+    - '{{ .Values.webserver.defaultUser.email }}'
+    - -f
+    - '{{ .Values.webserver.defaultUser.firstName }}'
+    - -l
+    - '{{ .Values.webserver.defaultUser.lastName }}'
+    - -p
+    - '{{ .Values.webserver.defaultUser.password }}'
+    command: null
+    env: []
+    extraContainers: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    jobAnnotations: {}
+    labels: {}
+    nodeSelector: {}
+    resources: {}
+    securityContext: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    tolerations: []
+    topologySpreadConstraints: []
+    useHelmHooks: true
+  dagProcessor:
+    affinity: {}
+    annotations: {}
+    args:
+    - bash
+    - -c
+    - exec airflow dag-processor
+    command: null
+    enabled: false
+    env: []
+    extraContainers: []
+    extraInitContainers: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    livenessProbe:
+      command: null
+      failureThreshold: 5
+      initialDelaySeconds: 10
+      periodSeconds: 60
+      timeoutSeconds: 20
+    nodeSelector: {}
+    podAnnotations: {}
+    priorityClassName: null
+    replicas: 1
+    resources: {}
+    revisionHistoryLimit: null
+    safeToEvict: true
+    securityContext: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    strategy:
+      rollingUpdate:
+        maxSurge: 100%
+        maxUnavailable: 50%
+    terminationGracePeriodSeconds: 60
+    tolerations: []
+    topologySpreadConstraints: []
+    waitForMigrations:
+      enabled: true
+      env: []
+  dags:
+    gitSync:
+      branch: v2-2-stable
+      containerName: git-sync
+      depth: 1
+      enabled: false
+      env: []
+      extraVolumeMounts: []
+      maxFailures: 0
+      repo: https://github.com/apache/airflow.git
+      resources: {}
+      rev: HEAD
+      securityContext: {}
+      subPath: tests/dags
+      uid: 65533
+      wait: 5
+    persistence:
+      accessMode: ReadWriteOnce
+      enabled: false
+      existingClaim: null
+      size: 1Gi
+      storageClassName: null
+      subPath: null
+  data:
+    brokerUrl: null
+    brokerUrlSecretName: null
+    metadataConnection:
+      db: postgres
+      host: null
+      pass: postgres
+      port: 5432
+      protocol: postgresql
+      sslmode: disable
+      user: postgres
+    metadataSecretName: null
+    resultBackendConnection: null
+    resultBackendSecretName: null
+  defaultAirflowRepository: apache/airflow
+  defaultAirflowTag: 2.5.1
+  elasticsearch:
+    connection: {}
+    enabled: false
+    secretName: null
+  enableBuiltInSecretEnvVars:
+    AIRFLOW__CELERY__BROKER_URL: true
+    AIRFLOW__CELERY__CELERY_RESULT_BACKEND: true
+    AIRFLOW__CELERY__RESULT_BACKEND: true
+    AIRFLOW__CORE__FERNET_KEY: true
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: true
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: true
+    AIRFLOW__ELASTICSEARCH__ELASTICSEARCH_HOST: true
+    AIRFLOW__ELASTICSEARCH__HOST: true
+    AIRFLOW__WEBSERVER__SECRET_KEY: true
+    AIRFLOW_CONN_AIRFLOW_DB: true
+  env: []
+  executor: CeleryExecutor
+  extraConfigMaps: {}
+  extraEnv: null
+  extraEnvFrom: null
+  extraSecrets: {}
+  fernetKey: null
+  fernetKeySecretName: null
+  flower:
+    affinity: {}
+    annotations: {}
+    args:
+    - bash
+    - -c
+    - |-
+      exec \
+      airflow {{ semverCompare ">=2.0.0" .Values.airflowVersion | ternary "celery flower" "flower" }}
+    command: null
+    enabled: false
+    env: []
+    extraContainers: []
+    extraNetworkPolicies: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    labels: {}
+    networkPolicy:
+      ingress:
+        from: []
+        ports:
+        - port: '{{ .Values.ports.flowerUI }}'
+    nodeSelector: {}
+    password: null
+    podAnnotations: {}
+    priorityClassName: null
+    resources: {}
+    revisionHistoryLimit: null
+    secretName: null
+    securityContext: {}
+    service:
+      annotations: {}
+      loadBalancerIP: null
+      loadBalancerSourceRanges: []
+      ports:
+      - name: flower-ui
+        port: '{{ .Values.ports.flowerUI }}'
+      type: ClusterIP
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    tolerations: []
+    topologySpreadConstraints: []
+    username: null
+  fullnameOverride: ""
+  gid: 0
+  images:
+    airflow:
+      pullPolicy: IfNotPresent
+      repository: null
+      tag: null
+    flower:
+      pullPolicy: IfNotPresent
+      repository: null
+      tag: null
+    gitSync:
+      pullPolicy: IfNotPresent
+      repository: k8s.gcr.io/git-sync/git-sync
+      tag: v3.6.3
+    migrationsWaitTimeout: 60
+    pgbouncer:
+      pullPolicy: IfNotPresent
+      repository: apache/airflow
+      tag: airflow-pgbouncer-2021.04.28-1.14.0
+    pgbouncerExporter:
+      pullPolicy: IfNotPresent
+      repository: apache/airflow
+      tag: airflow-pgbouncer-exporter-2021.09.22-0.12.0
+    pod_template:
+      pullPolicy: IfNotPresent
+      repository: null
+      tag: null
+    redis:
+      pullPolicy: IfNotPresent
+      repository: redis
+      tag: 7-bullseye
+    statsd:
+      pullPolicy: IfNotPresent
+      repository: quay.io/prometheus/statsd-exporter
+      tag: v0.22.8
+    useDefaultImageForMigration: false
+  ingress:
+    enabled: null
+    flower:
+      annotations: {}
+      enabled: false
+      host: ""
+      hosts: []
+      ingressClassName: ""
+      path: /
+      pathType: ImplementationSpecific
+      tls:
+        enabled: false
+        secretName: ""
+    web:
+      annotations: {}
+      enabled: false
+      host: ""
+      hosts: []
+      ingressClassName: ""
+      path: /
+      pathType: ImplementationSpecific
+      precedingPaths: []
+      succeedingPaths: []
+      tls:
+        enabled: false
+        secretName: ""
+  kerberos:
+    ccacheFileName: cache
+    ccacheMountPath: /var/kerberos-ccache
+    config: |
+      # This is an example config showing how you can use templating and how "example" config
+      # might look like. It works with the test kerberos server that we are using during integration
+      # testing at Apache Airflow (see `scripts/ci/docker-compose/integration-kerberos.yml` but in
+      # order to make it production-ready you must replace it with your own configuration that
+      # Matches your kerberos deployment. Administrators of your Kerberos instance should
+      # provide the right configuration.
+  
+      [logging]
+      default = "FILE:{{ template "airflow_logs_no_quote" . }}/kerberos_libs.log"
+      kdc = "FILE:{{ template "airflow_logs_no_quote" . }}/kerberos_kdc.log"
+      admin_server = "FILE:{{ template "airflow_logs_no_quote" . }}/kadmind.log"
+  
+      [libdefaults]
+      default_realm = FOO.COM
+      ticket_lifetime = 10h
+      renew_lifetime = 7d
+      forwardable = true
+  
+      [realms]
+      FOO.COM = {
+        kdc = kdc-server.foo.com
+        admin_server = admin_server.foo.com
+      }
+    configPath: /etc/krb5.conf
+    enabled: false
+    keytabBase64Content: null
+    keytabPath: /etc/airflow.keytab
+    principal: airflow@FOO.COM
+    reinitFrequency: 3600
+  kubeVersionOverride: ""
+  labels: {}
+  limits: []
+  logs:
+    persistence:
+      enabled: false
+      existingClaim: null
+      size: 100Gi
+      storageClassName: null
+  migrateDatabaseJob:
+    affinity: {}
+    annotations: {}
+    applyCustomEnv: true
+    args:
+    - bash
+    - -c
+    - |-
+      exec \
+      airflow {{ semverCompare ">=2.0.0" .Values.airflowVersion | ternary "db upgrade" "upgradedb" }}
+    command: null
+    enabled: true
+    extraContainers: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    jobAnnotations: {}
+    nodeSelector: {}
+    resources: {}
+    securityContext: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    tolerations: []
+    topologySpreadConstraints: []
+    useHelmHooks: true
+  multiNamespaceMode: false
+  nameOverride: ""
+  networkPolicies:
+    enabled: false
+  nodeSelector: {}
+  pgbouncer:
+    affinity: {}
+    annotations: {}
+    args: null
+    auth_file: /etc/pgbouncer/users.txt
+    auth_type: md5
+    ciphers: normal
+    command:
+    - pgbouncer
+    - -u
+    - nobody
+    - /etc/pgbouncer/pgbouncer.ini
+    configSecretName: null
+    enabled: false
+    extraIni: null
+    extraIniMetadata: null
+    extraIniResultBackend: null
+    extraNetworkPolicies: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    logConnections: 0
+    logDisconnections: 0
+    maxClientConn: 100
+    metadataPoolSize: 10
+    metricsExporterSidecar:
+      resources: {}
+      sslmode: disable
+    nodeSelector: {}
+    podDisruptionBudget:
+      config:
+        maxUnavailable: 1
+      enabled: false
+    priorityClassName: null
+    replicas: 1
+    resources: {}
+    resultBackendPoolSize: 5
+    revisionHistoryLimit: null
+    service:
+      extraAnnotations: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    ssl:
+      ca: null
+      cert: null
+      key: null
+    sslmode: prefer
+    tolerations: []
+    topologySpreadConstraints: []
+    uid: 65534
+    verbose: 0
+  podTemplate: null
+  ports:
+    airflowUI: 8080
+    flowerUI: 5555
+    pgbouncer: 6543
+    pgbouncerScrape: 9127
+    redisDB: 6379
+    statsdIngest: 9125
+    statsdScrape: 9102
+    workerLogs: 8793
+  postgresql:
+    architecture: standalone
+    audit:
+      clientMinMessages: error
+      logConnections: false
+      logDisconnections: false
+      logHostname: false
+      logLinePrefix: ""
+      logTimezone: ""
+      pgAuditLog: ""
+      pgAuditLogCatalog: "off"
+    auth:
+      database: ""
+      enablePostgresUser: true
+      existingSecret: ""
+      password: ""
+      postgresPassword: postgres
+      replicationPassword: ""
+      replicationUsername: repl_user
+      secretKeys:
+        adminPasswordKey: postgres-password
+        replicationPasswordKey: replication-password
+        userPasswordKey: password
+      usePasswordFiles: false
+      username: ""
+    clusterDomain: cluster.local
+    common:
+      exampleValue: common-chart
+      global:
+        imagePullSecrets: []
+        imageRegistry: ""
+        postgresql:
+          auth:
+            database: ""
+            existingSecret: ""
+            password: ""
+            postgresPassword: ""
+            secretKeys:
+              adminPasswordKey: ""
+              replicationPasswordKey: ""
+              userPasswordKey: ""
+            username: ""
+          service:
+            ports:
+              postgresql: ""
+        storageClass: ""
+    commonAnnotations: {}
+    commonLabels: {}
+    containerPorts:
+      postgresql: 5432
+    diagnosticMode:
+      args:
+      - infinity
+      command:
+      - sleep
+      enabled: false
+    enabled: true
+    extraDeploy: []
+    fullnameOverride: ""
+    global:
+      imagePullSecrets: []
+      imageRegistry: ""
+      postgresql:
+        auth:
+          database: ""
+          existingSecret: ""
+          password: ""
+          postgresPassword: ""
+          secretKeys:
+            adminPasswordKey: ""
+            replicationPasswordKey: ""
+            userPasswordKey: ""
+          username: ""
+        service:
+          ports:
+            postgresql: ""
+      storageClass: ""
+    image:
+      debug: false
+      digest: ""
+      pullPolicy: IfNotPresent
+      pullSecrets: []
+      registry: docker.io
+      repository: bitnami/postgresql
+      tag: "11"
+    kubeVersion: ""
+    ldap:
+      basedn: ""
+      binddn: ""
+      bindpw: ""
+      enabled: false
+      port: ""
+      prefix: ""
+      scheme: ""
+      searchAttribute: ""
+      searchFilter: ""
+      server: ""
+      suffix: ""
+      tls:
+        enabled: false
+      uri: ""
+    metrics:
+      containerPorts:
+        metrics: 9187
+      containerSecurityContext:
+        enabled: true
+        runAsNonRoot: true
+        runAsUser: 1001
+      customLivenessProbe: {}
+      customMetrics: {}
+      customReadinessProbe: {}
+      customStartupProbe: {}
+      enabled: false
+      extraEnvVars: []
+      image:
+        digest: ""
+        pullPolicy: IfNotPresent
+        pullSecrets: []
+        registry: docker.io
+        repository: bitnami/postgres-exporter
+        tag: 0.11.1-debian-11-r46
+      livenessProbe:
+        enabled: true
+        failureThreshold: 6
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      prometheusRule:
+        enabled: false
+        labels: {}
+        namespace: ""
+        rules: []
+      readinessProbe:
+        enabled: true
+        failureThreshold: 6
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      resources:
+        limits: {}
+        requests: {}
+      service:
+        annotations:
+          prometheus.io/port: '{{ .Values.metrics.service.ports.metrics }}'
+          prometheus.io/scrape: "true"
+        clusterIP: ""
+        ports:
+          metrics: 9187
+        sessionAffinity: None
+      serviceMonitor:
+        enabled: false
+        honorLabels: false
+        interval: ""
+        jobLabel: ""
+        labels: {}
+        metricRelabelings: []
+        namespace: ""
+        relabelings: []
+        scrapeTimeout: ""
+        selector: {}
+      startupProbe:
+        enabled: false
+        failureThreshold: 15
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+    nameOverride: ""
+    networkPolicy:
+      egressRules:
+        customRules: {}
+        denyConnectionsToExternal: false
+      enabled: false
+      ingressRules:
+        primaryAccessOnlyFrom:
+          customRules: {}
+          enabled: false
+          namespaceSelector: {}
+          podSelector: {}
+        readReplicasAccessOnlyFrom:
+          customRules: {}
+          enabled: false
+          namespaceSelector: {}
+          podSelector: {}
+      metrics:
+        enabled: false
+        namespaceSelector: {}
+        podSelector: {}
+    postgresqlDataDir: /bitnami/postgresql/data
+    postgresqlSharedPreloadLibraries: pgaudit
+    primary:
+      affinity: {}
+      annotations: {}
+      args: []
+      command: []
+      configuration: ""
+      containerSecurityContext:
+        enabled: true
+        runAsUser: 1001
+      customLivenessProbe: {}
+      customReadinessProbe: {}
+      customStartupProbe: {}
+      existingConfigmap: ""
+      existingExtendedConfigmap: ""
+      extendedConfiguration: ""
+      extraEnvVars: []
+      extraEnvVarsCM: ""
+      extraEnvVarsSecret: ""
+      extraPodSpec: {}
+      extraVolumeMounts: []
+      extraVolumes: []
+      hostAliases: []
+      hostIPC: false
+      hostNetwork: false
+      initContainers: []
+      initdb:
+        args: ""
+        password: ""
+        postgresqlWalDir: ""
+        scripts: {}
+        scriptsConfigMap: ""
+        scriptsSecret: ""
+        user: ""
+      labels: {}
+      lifecycleHooks: {}
+      livenessProbe:
+        enabled: true
+        failureThreshold: 6
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      name: primary
+      nodeAffinityPreset:
+        key: ""
+        type: ""
+        values: []
+      nodeSelector: {}
+      persistence:
+        accessModes:
+        - ReadWriteOnce
+        annotations: {}
+        dataSource: {}
+        enabled: true
+        existingClaim: ""
+        labels: {}
+        mountPath: /bitnami/postgresql
+        selector: {}
+        size: 8Gi
+        storageClass: ""
+        subPath: ""
+      pgHbaConfiguration: ""
+      podAffinityPreset: ""
+      podAnnotations: {}
+      podAntiAffinityPreset: soft
+      podLabels: {}
+      podSecurityContext:
+        enabled: true
+        fsGroup: 1001
+      priorityClassName: ""
+      readinessProbe:
+        enabled: true
+        failureThreshold: 6
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      resources:
+        limits: {}
+        requests:
+          cpu: 250m
+          memory: 256Mi
+      schedulerName: ""
+      service:
+        annotations: {}
+        clusterIP: ""
+        externalTrafficPolicy: Cluster
+        extraPorts: []
+        headless:
+          annotations: {}
+        loadBalancerIP: ""
+        loadBalancerSourceRanges: []
+        nodePorts:
+          postgresql: ""
+        ports:
+          postgresql: 5432
+        sessionAffinity: None
+        sessionAffinityConfig: {}
+        type: ClusterIP
+      sidecars: []
+      standby:
+        enabled: false
+        primaryHost: ""
+        primaryPort: ""
+      startupProbe:
+        enabled: false
+        failureThreshold: 15
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      terminationGracePeriodSeconds: ""
+      tolerations: []
+      topologySpreadConstraints: []
+      updateStrategy:
+        rollingUpdate: {}
+        type: RollingUpdate
+    psp:
+      create: false
+    rbac:
+      create: false
+      rules: []
+    readReplicas:
+      affinity: {}
+      annotations: {}
+      args: []
+      command: []
+      containerSecurityContext:
+        enabled: true
+        runAsUser: 1001
+      customLivenessProbe: {}
+      customReadinessProbe: {}
+      customStartupProbe: {}
+      extendedConfiguration: ""
+      extraEnvVars: []
+      extraEnvVarsCM: ""
+      extraEnvVarsSecret: ""
+      extraPodSpec: {}
+      extraVolumeMounts: []
+      extraVolumes: []
+      hostAliases: []
+      hostIPC: false
+      hostNetwork: false
+      initContainers: []
+      labels: {}
+      lifecycleHooks: {}
+      livenessProbe:
+        enabled: true
+        failureThreshold: 6
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      name: read
+      nodeAffinityPreset:
+        key: ""
+        type: ""
+        values: []
+      nodeSelector: {}
+      persistence:
+        accessModes:
+        - ReadWriteOnce
+        annotations: {}
+        dataSource: {}
+        enabled: true
+        existingClaim: ""
+        labels: {}
+        mountPath: /bitnami/postgresql
+        selector: {}
+        size: 8Gi
+        storageClass: ""
+        subPath: ""
+      podAffinityPreset: ""
+      podAnnotations: {}
+      podAntiAffinityPreset: soft
+      podLabels: {}
+      podSecurityContext:
+        enabled: true
+        fsGroup: 1001
+      priorityClassName: ""
+      readinessProbe:
+        enabled: true
+        failureThreshold: 6
+        initialDelaySeconds: 5
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      replicaCount: 1
+      resources:
+        limits: {}
+        requests:
+          cpu: 250m
+          memory: 256Mi
+      schedulerName: ""
+      service:
+        annotations: {}
+        clusterIP: ""
+        externalTrafficPolicy: Cluster
+        extraPorts: []
+        headless:
+          annotations: {}
+        loadBalancerIP: ""
+        loadBalancerSourceRanges: []
+        nodePorts:
+          postgresql: ""
+        ports:
+          postgresql: 5432
+        sessionAffinity: None
+        sessionAffinityConfig: {}
+        type: ClusterIP
+      sidecars: []
+      startupProbe:
+        enabled: false
+        failureThreshold: 15
+        initialDelaySeconds: 30
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 1
+      terminationGracePeriodSeconds: ""
+      tolerations: []
+      topologySpreadConstraints: []
+      updateStrategy:
+        rollingUpdate: {}
+        type: RollingUpdate
+    replication:
+      applicationName: my_application
+      numSynchronousReplicas: 0
+      synchronousCommit: "off"
+    serviceAccount:
+      annotations: {}
+      automountServiceAccountToken: true
+      create: false
+      name: ""
+    shmVolume:
+      enabled: true
+      sizeLimit: ""
+    tls:
+      autoGenerated: false
+      certCAFilename: ""
+      certFilename: ""
+      certKeyFilename: ""
+      certificatesSecret: ""
+      crlFilename: ""
+      enabled: false
+      preferServerCiphers: true
+    volumePermissions:
+      containerSecurityContext:
+        runAsUser: 0
+      enabled: false
+      image:
+        digest: ""
+        pullPolicy: IfNotPresent
+        pullSecrets: []
+        registry: docker.io
+        repository: bitnami/bitnami-shell
+        tag: 11-debian-11-r69
+      resources:
+        limits: {}
+        requests: {}
+  quotas: {}
+  rbac:
+    create: true
+    createSCCRoleBinding: false
+  redis:
+    affinity: {}
+    enabled: true
+    nodeSelector: {}
+    password: null
+    passwordSecretName: null
+    persistence:
+      annotations: {}
+      enabled: true
+      size: 1Gi
+      storageClassName: null
+    podAnnotations: {}
+    resources: {}
+    safeToEvict: true
+    securityContext: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    terminationGracePeriodSeconds: 600
+    tolerations: []
+    topologySpreadConstraints: []
+    uid: 0
+  registry:
+    connection: {}
+    secretName: null
+  revisionHistoryLimit: null
+  scheduler:
+    affinity: {}
+    annotations: {}
+    args:
+    - bash
+    - -c
+    - exec airflow scheduler
+    command: null
+    env: []
+    extraContainers: []
+    extraInitContainers: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    labels: {}
+    livenessProbe:
+      command: null
+      failureThreshold: 5
+      initialDelaySeconds: 10
+      periodSeconds: 60
+      timeoutSeconds: 20
+    logGroomerSidecar:
+      args:
+      - bash
+      - /clean-logs
+      command: null
+      enabled: true
+      resources: {}
+      retentionDays: 15
+    nodeSelector: {}
+    podAnnotations: {}
+    podDisruptionBudget:
+      config:
+        maxUnavailable: 1
+      enabled: false
+    priorityClassName: null
+    replicas: 1
+    resources: {}
+    revisionHistoryLimit: null
+    safeToEvict: true
+    securityContext: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    strategy: null
+    tolerations: []
+    topologySpreadConstraints: []
+    updateStrategy: null
+    waitForMigrations:
+      enabled: true
+      env: []
+  secret: []
+  securityContext: {}
+  statsd:
+    affinity: {}
+    args:
+    - --statsd.mapping-config=/etc/statsd-exporter/mappings.yml
+    enabled: true
+    extraMappings: []
+    extraNetworkPolicies: []
+    nodeSelector: {}
+    overrideMappings: []
+    podAnnotations: {}
+    priorityClassName: null
+    resources: {}
+    revisionHistoryLimit: null
+    securityContext: {}
+    service:
+      extraAnnotations: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    tolerations: []
+    topologySpreadConstraints: []
+    uid: 65534
+  tolerations: []
+  topologySpreadConstraints: []
+  triggerer:
+    affinity: {}
+    annotations: {}
+    args:
+    - bash
+    - -c
+    - exec airflow triggerer
+    command: null
+    enabled: true
+    env: []
+    extraContainers: []
+    extraInitContainers: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    labels: {}
+    livenessProbe:
+      command: null
+      failureThreshold: 5
+      initialDelaySeconds: 10
+      periodSeconds: 60
+      timeoutSeconds: 20
+    nodeSelector: {}
+    podAnnotations: {}
+    priorityClassName: null
+    replicas: 1
+    resources: {}
+    revisionHistoryLimit: null
+    safeToEvict: true
+    securityContext: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    strategy:
+      rollingUpdate:
+        maxSurge: 100%
+        maxUnavailable: 50%
+    terminationGracePeriodSeconds: 60
+    tolerations: []
+    topologySpreadConstraints: []
+    waitForMigrations:
+      enabled: true
+      env: []
+  uid: 50000
+  volumeMounts: []
+  volumes: []
+  webserver:
+    affinity: {}
+    allowPodLogReading: true
+    annotations: {}
+    args:
+    - bash
+    - -c
+    - exec airflow webserver
+    command: null
+    defaultUser:
+      email: admin@example.com
+      enabled: true
+      firstName: admin
+      lastName: user
+      password: admin
+      role: Admin
+      username: admin
+    env: []
+    extraContainers: []
+    extraInitContainers: []
+    extraNetworkPolicies: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    labels: {}
+    livenessProbe:
+      failureThreshold: 20
+      initialDelaySeconds: 15
+      periodSeconds: 5
+      scheme: HTTP
+      timeoutSeconds: 30
+    networkPolicy:
+      ingress:
+        from: []
+        ports:
+        - port: '{{ .Values.ports.airflowUI }}'
+    nodeSelector: {}
+    podAnnotations: {}
+    podDisruptionBudget:
+      config:
+        maxUnavailable: 1
+      enabled: false
+    priorityClassName: null
+    readinessProbe:
+      failureThreshold: 20
+      initialDelaySeconds: 15
+      periodSeconds: 5
+      scheme: HTTP
+      timeoutSeconds: 30
+    replicas: 1
+    resources: {}
+    revisionHistoryLimit: null
+    securityContext: {}
+    service:
+      annotations: {}
+      loadBalancerIP: null
+      loadBalancerSourceRanges: []
+      ports:
+      - name: airflow-ui
+        port: '{{ .Values.ports.airflowUI }}'
+      type: ClusterIP
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    strategy: null
+    tolerations: []
+    topologySpreadConstraints: []
+    waitForMigrations:
+      enabled: true
+      env: []
+    webserverConfig: null
+    webserverConfigConfigMapName: null
+  webserverSecretKey: null
+  webserverSecretKeySecretName: null
+  workers:
+    affinity: {}
+    annotations: {}
+    args:
+    - bash
+    - -c
+    - |-
+      exec \
+      airflow {{ semverCompare ">=2.0.0" .Values.airflowVersion | ternary "celery worker" "worker" }}
+    command: null
+    env: []
+    extraContainers: []
+    extraInitContainers: []
+    extraVolumeMounts: []
+    extraVolumes: []
+    hostAliases: []
+    keda:
+      advanced: {}
+      cooldownPeriod: 30
+      enabled: false
+      maxReplicaCount: 10
+      minReplicaCount: 0
+      namespaceLabels: {}
+      pollingInterval: 5
+    kerberosSidecar:
+      enabled: false
+      resources: {}
+    labels: {}
+    livenessProbe:
+      command: null
+      enabled: true
+      failureThreshold: 5
+      initialDelaySeconds: 10
+      periodSeconds: 60
+      timeoutSeconds: 20
+    logGroomerSidecar:
+      args:
+      - bash
+      - /clean-logs
+      command: null
+      enabled: true
+      resources: {}
+      retentionDays: 15
+    nodeSelector: {}
+    persistence:
+      annotations: {}
+      enabled: true
+      fixPermissions: false
+      size: 100Gi
+      storageClassName: null
+    podAnnotations: {}
+    priorityClassName: null
+    replicas: 1
+    resources: {}
+    revisionHistoryLimit: null
+    safeToEvict: true
+    securityContext: {}
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: null
+    strategy:
+      rollingUpdate:
+        maxSurge: 100%
+        maxUnavailable: 50%
+    terminationGracePeriodSeconds: 600
+    tolerations: []
+    topologySpreadConstraints: []
+    updateStrategy: null
+    waitForMigrations:
+      env: []
+  
+  

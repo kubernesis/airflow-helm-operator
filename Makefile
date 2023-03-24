@@ -29,14 +29,17 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 #
 # For example, running 'make bundle-build bundle-push catalog-build catalog-push' will build and push both
 # example.com/airflow-hybrid-operator-bundle:$VERSION and example.com/airflow-hybrid-operator-catalog:$VERSION.
-IMAGE_TAG_BASE ?= example.com/airflow-hybrid-operator
+IMAGE_TAG_BASE ?= quay.io/skattoju/airflow-hybrid-operator
 
 # BUNDLE_IMG defines the image:tag used for the bundle.
 # You can use it as an arg. (E.g make bundle-build BUNDLE_IMG=<some-registry>/<project-name-bundle>:<tag>)
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
 
+# Extra Service Accounts Flag
+EXTRA_SERVICE_ACCOUNTS ?= --extra-service-accounts airflow-helm-create-user-job,airflow-helm-migrate-database-job,airflow-helm-postgresql,airflow-helm-redis,airflow-helm-scheduler,airflow-helm-statsd,airflow-helm-triggerer,airflow-helm-webserver,airflow-helm-worker
+
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
-BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+BUNDLE_GEN_FLAGS ?= -q --overwrite $(EXTRA_SERVICE_ACCOUNTS) --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 
 # USE_IMAGE_DIGESTS defines if images are resolved via tags or digests
 # You can enable this value if you would like to use SHA Based Digests
@@ -47,7 +50,7 @@ ifeq ($(USE_IMAGE_DIGESTS), true)
 endif
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= $(IMAGE_TAG_BASE):$(VERSION)
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
 
@@ -109,12 +112,12 @@ test: manifests generate fmt vet envtest ## Run tests.
 ##@ Build
 .PHONY: run
 run: manifests generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
-	helm-operator
-	$(HELM_OPERATOR) run
+	helm-operator run
+#	$(HELM_OPERATOR) run
 	
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
-	docker build -t ${IMG}
+	docker build -t ${IMG} .
 
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.

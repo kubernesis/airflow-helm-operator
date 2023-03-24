@@ -229,7 +229,8 @@ airflowLocalSettings: |-
 # Enable RBAC (default on most clusters these days)
 rbac:
   # Specifies whether RBAC resources should be created
-  create: true
+  # The operator can't apply these because only olm can create rbac resources
+  create: false
   createSCCRoleBinding: false
 
 # Airflow executor
@@ -489,10 +490,10 @@ workers:
   # Create ServiceAccount
   serviceAccount:
     # Specifies whether a ServiceAccount should be created
-    create: true
+    create: false
     # The name of the ServiceAccount to use.
     # If not set and create is true, a name is generated using the release name
-    name: ~
+    name: airflow-worker
 
     # Annotations to add to worker kubernetes service account.
     annotations: {}
@@ -674,7 +675,7 @@ scheduler:
     create: true
     # The name of the ServiceAccount to use.
     # If not set and create is true, a name is generated using the release name
-    name: ~
+    name: airflow-scheduler
 
     # Annotations to add to scheduler kubernetes service account.
     annotations: {}
@@ -803,7 +804,7 @@ createUserJob:
     create: true
     # The name of the ServiceAccount to use.
     # If not set and create is true, a name is generated using the release name
-    name: ~
+    name: airflow-create-user-job
 
     # Annotations to add to create user kubernetes service account.
     annotations: {}
@@ -865,7 +866,7 @@ migrateDatabaseJob:
     create: true
     # The name of the ServiceAccount to use.
     # If not set and create is true, a name is generated using the release name
-    name: ~
+    name: airflow-migrate-database-job
 
     # Annotations to add to migrate database job kubernetes service account.
     annotations: {}
@@ -927,7 +928,7 @@ webserver:
     create: true
     # The name of the ServiceAccount to use.
     # If not set and create is true, a name is generated using the release name
-    name: ~
+    name: airflow-webserver
 
     # Annotations to add to webserver kubernetes service account.
     annotations: {}
@@ -1709,6 +1710,16 @@ postgresql:
     postgresPassword: postgres
     username: ~
     password: ~
+  # The operator can't apply these as only olm can create rbac objects
+  # rbac:
+  #   create: true
+  #   rules:
+  #   - apiGroups: ["security.openshift.io"]
+  #     resources: ["securitycontextconstraints"]
+  #     resourceNames: ["anyuid"]
+  #     verbs: ["use"]
+  # serviceAccount:
+  #   create: true
 
 # Config settings to go into the mounted airflow.cfg
 #
