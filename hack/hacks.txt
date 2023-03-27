@@ -1,0 +1,8 @@
+# Hacker Notes
+## Some modifications are needed to jam the official airflow helm chart into an operator
+### Why
+The workload (airflow) requires elevated permissions to run in openshift when deployed in "developer mode". The helm chart is able to account for most of these via options set in values.yaml however these cannot be used when the helm chart is packaged as an operator as the Operator Lifecycle Manager (OLM) is meant to create RBACs.
+### What
+The RBAC manifests need to extracted and made part of the operator bundle in order for them to deployed by OLM.
+### How
+In order to extract the required RBAC yamls from the helm chart the `helm template` command is used in combination with yq. The service accounts are specified with the --extra-service-accounts flag when generating the bundle.

@@ -42,7 +42,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-03-24T20:04:52Z"
+    createdAt: "2023-03-24T21:03:58Z"
     operators.operatorframework.io/builder: operator-sdk-v1.27.0
     operators.operatorframework.io/project_layout: hybrid.helm.sdk.operatorframework.io/v1-alpha
   name: airflow-hybrid-operator.v0.0.1
@@ -199,7 +199,7 @@ spec:
                 - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 - --leader-election-id=airflow-hybrid-operator
-                image: controller:latest
+                image: quay.io/skattoju/airflow-hybrid-operator:0.0.1
                 livenessProbe:
                   httpGet:
                     path: /healthz
