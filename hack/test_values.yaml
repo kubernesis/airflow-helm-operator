@@ -1,0 +1,53 @@
+rbac:
+  create: false
+  createSCCRoleBinding: false
+createUserJob:
+  serviceAccount:
+    create: false
+    name: airflow-helm-create-user-job
+dagProcessor:
+  serviceAccount:
+    create: false
+    name: airflow-helm-worker
+flower:
+  serviceAccount:
+    create: false
+    name: airflow-helm-webserver
+migrateDatabaseJob:
+  serviceAccount:
+    create: false
+    name: airflow-helm-migrate-database-job
+pgbouncer:
+  serviceAccount:
+    create: false
+    name: airflow-helm-postgresql
+postgresql:
+  rbac:
+    create: false
+  serviceAccount:
+    create: false
+    name: airflow-helm-postgresql
+redis:
+  serviceAccount:
+    create: false
+    name: airflow-helm-redis
+scheduler:
+  serviceAccount:
+    create: false
+    name: airflow-helm-scheduler
+statsd:
+  serviceAccount:
+    create: false
+    name: airflow-helm-statsd
+triggerer:
+  serviceAccount:
+    create: false
+    name: airflow-helm-triggerer
+webserver:
+  serviceAccount:
+    create: false
+    name: airflow-helm-webserver
+workers:
+  serviceAccount:
+    create: false
+    name: airflow-helm-worker
