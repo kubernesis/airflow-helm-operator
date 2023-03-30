@@ -1,8 +1,26 @@
 # Hacker Notes
 ## Some modifications are needed to jam the official airflow helm chart into an operator
+
 ### Why
 The workload (airflow) requires elevated permissions to run in openshift when deployed in "developer mode". The helm chart is able to account for most of these via options set in values.yaml however these cannot be used when the helm chart is packaged as an operator as the Operator Lifecycle Manager (OLM) is meant to create RBACs.
+
 ### What
 The RBAC manifests need to extracted and made part of the operator bundle in order for them to deployed by OLM.
+
 ### How
 In order to extract the required RBAC yamls from the helm chart the `helm template` command is used in combination with yq. The service accounts are specified with the --extra-service-accounts flag when generating the bundle.
+
+### Extract RBAC
+`helm template airflow-helm apache-airflow/airflow --namespace airflow-helm --values values.yaml|yq '. | select(.kind == "ServiceAccount" or .kind == "Role" or .kind == "ClusterRole" or .kind == "RoleBinding" or .kind == "ClusterRoleBinding")' > rbac.yaml`
+
+### Remove namespaces from metadata
+`yq 'del(.metadata.namespace)' rbac.yaml > rbac_no_ns.yaml`
+
+### Extract ServiceAccount names for bundle command
+`helm template airflow-helm apache-airflow/airflow --namespace airflow-helm --values values.yaml|yq '. | select(.kind == "ServiceAccount")|.metadata.name' |grep -ve '---'| xargs | sed -e 's/ /,/g'`
+
+### Split rbac_no_ns.yaml
+`yq -s '.metadata.name + "_" + .kind' rbac_no_ns.yaml`
+
+### TODO: set suggested namespace 
+Cluster role bindings expect the operand to be deployed in the airlfow-helm namespace if this is not the case, additional clusterrolebingings would have to manually be created.

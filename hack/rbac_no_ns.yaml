@@ -4,7 +4,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: airflow-helm-postgresql
-  namespace: "airflow-helm"
   labels:
     app.kubernetes.io/name: postgresql
     helm.sh/chart: postgresql-12.1.9
@@ -266,7 +265,6 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: airflow-helm-postgresql
-  namespace: "airflow-helm"
   labels:
     app.kubernetes.io/name: postgresql
     helm.sh/chart: postgresql-12.1.9
@@ -307,7 +305,6 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: airflow-helm-pod-launcher-role
-  namespace: "airflow-helm"
   labels:
     tier: airflow
     release: airflow-helm
@@ -369,7 +366,6 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: airflow-helm-pod-log-reader-role
-  namespace: "airflow-helm"
   labels:
     tier: airflow
     release: airflow-helm
@@ -397,7 +393,6 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: airflow-helm-postgresql
-  namespace: "airflow-helm"
   labels:
     app.kubernetes.io/name: postgresql
     helm.sh/chart: postgresql-12.1.9
@@ -435,7 +430,6 @@ subjects:
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  namespace: "airflow-helm"
   name: airflow-helm-pod-launcher-rolebinding
   labels:
     tier: airflow
@@ -474,7 +468,6 @@ subjects:
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  namespace: "airflow-helm"
   name: airflow-helm-pod-log-reader-rolebinding
   labels:
     tier: airflow
@@ -516,7 +509,6 @@ subjects:
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  namespace: "airflow-helm"
   name: airflow-helm-scc-rolebinding
   labels:
     tier: airflow
