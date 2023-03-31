@@ -22,5 +22,10 @@ In order to extract the required RBAC yamls from the helm chart the `helm templa
 ### Split rbac_no_ns.yaml
 `yq -s '.metadata.name + "_" + .kind' rbac_no_ns.yaml`
 
+### Missing redis anyuid
+
+### Static webserver serviceAccount
+`kubectl create secret generic webserver-secret --from-literal="webserver-secret-key=$(python3 -c 'import secrets; print(secrets.token_hex(16))')"`
+
 ### TODO: set suggested namespace 
 Cluster role bindings expect the operand to be deployed in the airlfow-helm namespace if this is not the case, additional clusterrolebingings would have to manually be created.
