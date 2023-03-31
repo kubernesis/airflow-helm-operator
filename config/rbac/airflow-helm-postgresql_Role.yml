@@ -1,25 +1,3 @@
----
-# Source: airflow/charts/postgresql/templates/role.yaml
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: airflow-helm-postgresql
-  labels:
-    app.kubernetes.io/name: postgresql
-    helm.sh/chart: postgresql-12.1.9
-    app.kubernetes.io/instance: airflow-helm
-    app.kubernetes.io/managed-by: Helm
-# yamllint disable rule:indentation
-rules:
-  - apiGroups:
-      - security.openshift.io
-    resourceNames:
-      - anyuid
-    resources:
-      - securitycontextconstraints
-    verbs:
-      - use
-# Source: airflow/templates/rbac/pod-launcher-role.yaml
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -36,3 +14,22 @@ rules:
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: airflow-helm-postgresql
+  labels:
+    helm.sh/chart: postgresql-12.1.9
+    app.kubernetes.io/instance: airflow-helm
+    app.kubernetes.io/managed-by: Helm
+# yamllint disable rule:indentation
+rules:
+  - apiGroups:
+      - security.openshift.io
+    resourceNames:
+      - anyuid
+    resources:
+      - securitycontextconstraints
+    verbs:
+      - use
