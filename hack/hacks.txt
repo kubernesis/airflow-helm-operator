@@ -30,3 +30,6 @@ The dynamic secret puts the operator in a reconcile loop that it can't escape
 
 ### TODO: set suggested namespace 
 Cluster role bindings expect the operand to be deployed in the airlfow-helm namespace if this is not the case, additional clusterrolebingings would have to manually be created.
+
+### TODO: automate web ui access
+`oc expose service/airflow-helm-webserver`

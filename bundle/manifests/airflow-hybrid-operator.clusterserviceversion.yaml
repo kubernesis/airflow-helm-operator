@@ -10,42 +10,15 @@ metadata:
           "metadata": {
             "name": "airflow-helm"
           },
-          "spec": {
-            "postgresql": {
-              "rbac": {
-                "create": true,
-                "rules": [
-                  {
-                    "apiGroups": [
-                      "security.openshift.io"
-                    ],
-                    "resourceNames": [
-                      "anyuid"
-                    ],
-                    "resources": [
-                      "securitycontextconstraints"
-                    ],
-                    "verbs": [
-                      "use"
-                    ]
-                  }
-                ]
-              },
-              "serviceAccount": {
-                "create": true
-              }
-            },
-            "rbac": {
-              "createSCCRoleBinding": true
-            }
-          }
+          "spec": {}
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-03-27T20:46:22Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.27.0
+    createdAt: "2023-05-02T20:08:59Z"
+    operatorframework.io/suggested-namespace: airflow-helm
+    operators.operatorframework.io/builder: operator-sdk-v1.28.1
     operators.operatorframework.io/project_layout: hybrid.helm.sdk.operatorframework.io/v1-alpha
-  name: airflow-hybrid-operator.v0.0.1
+  name: airflow-hybrid-operator.v0.2.5
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -116,6 +89,13 @@ spec:
           resources:
           - deployments
           - statefulsets
+          - jobs
+          verbs:
+          - '*'
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
           verbs:
           - '*'
         - apiGroups:
@@ -199,7 +179,7 @@ spec:
                 - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 - --leader-election-id=airflow-hybrid-operator
-                image: quay.io/skattoju/airflow-hybrid-operator:0.0.1
+                image: quay.io/skattoju/airflow-hybrid-operator:0.2.5
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -215,8 +195,8 @@ spec:
                   periodSeconds: 10
                 resources:
                   limits:
-                    cpu: 500m
-                    memory: 128Mi
+                    cpu: "1"
+                    memory: 1Gi
                   requests:
                     cpu: 10m
                     memory: 64Mi
@@ -286,4 +266,4 @@ spec:
   provider:
     name: airflow-hybrid-operator
     url: github.com/skattoju/airflow-hybrid-operator
-  version: 0.0.1
+  version: 0.2.5

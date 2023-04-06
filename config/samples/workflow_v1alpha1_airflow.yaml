@@ -2,47 +2,4 @@ apiVersion: workflow.apache.org/v1alpha1
 kind: AirFlow
 metadata:
   name: airflow-helm
-spec:
-  rbac:
-    create: false
-    createSCCRoleBinding: false
-  createUserJob:
-    serviceAccount:
-      create: false
-      name: airflow-helm-create-user-job
-  postgresql:
-    rbac:
-      create: false
-      name: airflow-helm-postgresql
-    serviceAccount:
-      create: false
-      name: airflow-helm-postgresql
-  migrateDatabaseJob:
-    serviceAccount:
-      create: false
-      name: airflow-helm-migrate-database-job
-  redis:
-    serviceAccount:
-      create: false
-      name: airflow-helm-redis
-  scheduler:
-    serviceAccount:
-      create: false
-      name: airflow-helm-scheduler
-  statsd:
-    serviceAccount:
-      create: false
-      name: airflow-helm-statsd
-  triggerer:
-    serviceAccount:
-      create: false
-      name: airflow-helm-triggerer
-  webserver:
-    serviceAccount:
-      create: false
-      name: airflow-helm-webserver
-  workers:
-    serviceAccount:
-      create: false
-      name: airflow-helm-worker
-  webserverSecretKeySecretName: webserver-secret
+spec: {}

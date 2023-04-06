@@ -3,7 +3,7 @@
   version: v1alpha1
   kind: AirFlow
   chart: helm-charts/airflow
-  overideValues:
+# overrideValues:
 # These only work for strings since the go type for overideValues is map[string]string 
 # https://github.com/operator-framework/operator-sdk/blob/f5e15be6c282d9df1662dd3febcfbd782c2b94f0/internal/helm/controller/reconcile.go#L54
 #  rbac.create: false
@@ -29,4 +29,5 @@
 #  workers.serviceAccount.create: false
 #  workers.serviceAccount.name: airflow-helm-worker
 #  webserverSecretKeySecretName: webserver-secret
+
 #+kubebuilder:scaffold:watch
