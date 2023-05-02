@@ -110,10 +110,13 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 
 ##@ Build
+.PHONY: build
+build: generate fmt vet ## Build manager binary.
+	go build -o bin/manager main.go
+
 .PHONY: run
 run: manifests generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
-	helm-operator run --zap-devel
-#	$(HELM_OPERATOR) run
+	go run ./main.go
 	
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.

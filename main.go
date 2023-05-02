@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"runtime"
@@ -26,10 +27,13 @@ import (
 	"github.com/operator-framework/helm-operator-plugins/pkg/annotation"
 	"github.com/operator-framework/helm-operator-plugins/pkg/reconciler"
 	"github.com/operator-framework/helm-operator-plugins/pkg/watches"
+	"helm.sh/helm/v3/pkg/chartutil"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrlruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -104,6 +108,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	//instantiate translater to populate defaults for OpenShift
+	overridesYaml := defaultTranslator{}
 	for _, w := range ws {
 		// Register controller with the factory
 		reconcilePeriod := defaultReconcilePeriod
@@ -120,6 +126,7 @@ func main() {
 			reconciler.WithChart(*w.Chart),
 			reconciler.WithGroupVersionKind(w.GroupVersionKind),
 			reconciler.WithOverrideValues(w.OverrideValues),
+			reconciler.WithValueTranslator(&overridesYaml),
 			reconciler.SkipDependentWatches(w.WatchDependentResources != nil && !*w.WatchDependentResources),
 			reconciler.WithMaxConcurrentReconciles(maxConcurrentReconciles),
 			reconciler.WithReconcilePeriod(reconcilePeriod),
@@ -143,4 +150,18 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+type defaultTranslator struct{}
+
+// Translator that sets default values in the helm chart that cannot be set via the watches.yaml file
+func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstructured.Unstructured) (chartutil.Values, error) {
+
+	// Read override values that should always be applied in the context of this operator
+	OverridesYaml, err := os.ReadFile("overrides.yaml")
+	AirFlowOverrides := &unstructured.Unstructured{Object: map[string]interface{}{"spec": map[string]interface{}{}}}
+	err = yaml.Unmarshal(OverridesYaml, &AirFlowOverrides)
+	chartValues := AirFlowOverrides.Object["spec"].(map[string]interface{})
+
+	return chartValues, err
 }

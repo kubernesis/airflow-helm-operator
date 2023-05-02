@@ -68,5 +68,11 @@ rules:
   resources:
   - "deployments"
   - "statefulsets"
-
+  - "jobs"
+- verbs:
+    - "*"
+  apiGroups:
+    - "batch"
+  resources:
+    - "jobs"
 #+kubebuilder:scaffold:rules
