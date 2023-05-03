@@ -5,7 +5,7 @@ plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: airflow-hybrid-operator
-repo: github.com/example/airflow-hybrid-operator
+repo: github.com/skattoju/airflow-hybrid-operator
 resources:
 - api:
     crdVersion: v1

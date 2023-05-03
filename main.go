@@ -108,7 +108,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	//instantiate translater to populate defaults for OpenShift
+	// TODO: create webserver secret
+
+	// instantiate translator to populate defaults for OpenShift
 	overridesYaml := defaultTranslator{}
 	for _, w := range ws {
 		// Register controller with the factory
@@ -152,16 +154,23 @@ func main() {
 	}
 }
 
+// defaultTranslator implements the Value Translator Interface
 type defaultTranslator struct{}
 
-// Translator that sets default values in the helm chart that cannot be set via the watches.yaml file
+// Translate sets default values in the helm chart that cannot be set via the watches.yaml file
 func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstructured.Unstructured) (chartutil.Values, error) {
-
 	// Read override values that should always be applied in the context of this operator
 	OverridesYaml, err := os.ReadFile("overrides.yaml")
+	if err != nil {
+		ctrl.Log.Error(err, "Error reading overrides.yaml")
+		return nil, err
+	}
 	AirFlowOverrides := &unstructured.Unstructured{Object: map[string]interface{}{"spec": map[string]interface{}{}}}
 	err = yaml.Unmarshal(OverridesYaml, &AirFlowOverrides)
+	if err != nil {
+		ctrl.Log.Error(err, "Error unmarshalling overrides.yaml")
+		return nil, err
+	}
 	chartValues := AirFlowOverrides.Object["spec"].(map[string]interface{})
-
 	return chartValues, err
 }
