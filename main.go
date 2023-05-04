@@ -24,12 +24,14 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/go-logr/logr"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	"github.com/operator-framework/helm-operator-plugins/pkg/annotation"
 	"github.com/operator-framework/helm-operator-plugins/pkg/reconciler"
 	"github.com/operator-framework/helm-operator-plugins/pkg/watches"
 	"helm.sh/helm/v3/pkg/chartutil"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrlruntime "k8s.io/apimachinery/pkg/runtime"
@@ -111,11 +113,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// generate webserver secret
-	generateAppSecret()
-
 	// instantiate translator to populate defaults for OpenShift
 	overridesYaml := defaultTranslator{}
+
+	// instantiate pre hook to generate webserver secret
+	prehookSecret := ensureAppSecret{}
 
 	for _, w := range ws {
 		// Register controller with the factory
@@ -134,6 +136,7 @@ func main() {
 			reconciler.WithGroupVersionKind(w.GroupVersionKind),
 			reconciler.WithOverrideValues(w.OverrideValues),
 			reconciler.WithValueTranslator(&overridesYaml),
+			reconciler.WithPreHook(&prehookSecret),
 			reconciler.SkipDependentWatches(w.WatchDependentResources != nil && !*w.WatchDependentResources),
 			reconciler.WithMaxConcurrentReconciles(maxConcurrentReconciles),
 			reconciler.WithReconcilePeriod(reconcilePeriod),
@@ -180,12 +183,50 @@ func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstruc
 	return chartValues, err
 }
 
-func generateAppSecret() {
-	var SecretLength int = 16
+type ensureAppSecret struct{}
+
+func (*ensureAppSecret) Exec(unstructured *unstructured.Unstructured, values chartutil.Values, log logr.Logger) error {
+	log.WithName("prehook-secret")
+	tmpClient, err := client.New(ctrl.GetConfigOrDie(), client.Options{})
+	namespacedClient := client.NewNamespacedClient(tmpClient, "airflow-helm")
+	if err != nil {
+		log.Error(err, "Unable to instantiate runtime client to create app secret")
+		os.Exit(1)
+	}
+
+	secretName := client.ObjectKey{
+		Name:      "webserver-secret",
+		Namespace: "airflow-helm",
+	}
+	secretObj := &corev1.Secret{}
+	err = namespacedClient.Get(context.TODO(), secretName, secretObj)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return generateAppSecret(context.TODO(), namespacedClient, log)
+		}
+		log.Error(err, "Unable to retrieve app secret")
+		return err
+	}
+
+	if secretObj.Name == "webserver-secret" {
+		log.Info("It appears that the secret already exists")
+		if secretObj.Data["webserver-secret-key"] != nil &&
+			len(secretObj.Data["webserver-secret-key"]) == 16 {
+			log.Info("Secret key length is as expected")
+			return nil
+		}
+		log.Error(err, "Unexpected secret key value, consider deleting webserver-secret so it can be regenerated")
+	}
+	return nil
+}
+
+func generateAppSecret(ctx context.Context, client client.Client, log logr.Logger) error {
+	var SecretLength = 16
 	token := make([]byte, SecretLength)
 	_, err := rand.Read(token)
 	if err != nil {
-		setupLog.Error(err, "Error generating random token")
+		log.Error(err, "Error generating random token")
+		return err
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -196,12 +237,15 @@ func generateAppSecret() {
 			"webserver-secret-key": token,
 		},
 	}
-	tmpClient, err := client.New(ctrl.GetConfigOrDie(), client.Options{})
-	namespacedClient := client.NewNamespacedClient(tmpClient, "airflow-helm")
+	log.Info("Creating webserver secret in namespace airflow-helm")
+	err = client.Create(ctx, secret)
 	if err != nil {
-		setupLog.Error(err, "Unable to instantiate runtime client to create app secret")
-		os.Exit(1)
+		if errors.IsAlreadyExists(err) {
+			log.Info("webserver secret already exists in namespace airflow-helm")
+			return nil
+		}
+		log.Error(err, "Error when creating webserver secret")
+		return err
 	}
-	setupLog.Info("Creating webserver secret in namespace airflow-helm")
-	namespacedClient.Create(context.Background(), secret)
+	return nil
 }
