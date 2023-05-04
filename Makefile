@@ -118,7 +118,6 @@ build: generate fmt vet ## Build manager binary.
 run: manifests generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run main.go
 
-	
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
 	docker build -t ${IMG} .
