@@ -110,10 +110,14 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 
 ##@ Build
+.PHONY: build
+build: generate fmt vet ## Build manager binary.
+	go build -o bin/manager main.go
+
 .PHONY: run
 run: manifests generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
 	go run main.go
-#	$(HELM_OPERATOR) run
+
 	
 .PHONY: docker-build
 docker-build: test ## Build docker image with the manager.
@@ -179,7 +183,7 @@ $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
 .PHONY: bundle
-bundle: kustomize ## Generate bundle manifests and metadata, then validate generated files.
+bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
 	operator-sdk generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)

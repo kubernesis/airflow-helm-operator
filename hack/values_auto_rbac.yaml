@@ -1,3 +1,4 @@
+# missing redis rolebinding to get anyuid needs to be added manually
 rbac:
   createSCCRoleBinding: true
 postgresql:

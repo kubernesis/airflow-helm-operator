@@ -10,42 +10,19 @@ metadata:
           "metadata": {
             "name": "airflow-helm"
           },
-          "spec": {
-            "postgresql": {
-              "rbac": {
-                "create": true,
-                "rules": [
-                  {
-                    "apiGroups": [
-                      "security.openshift.io"
-                    ],
-                    "resourceNames": [
-                      "anyuid"
-                    ],
-                    "resources": [
-                      "securitycontextconstraints"
-                    ],
-                    "verbs": [
-                      "use"
-                    ]
-                  }
-                ]
-              },
-              "serviceAccount": {
-                "create": true
-              }
-            },
-            "rbac": {
-              "createSCCRoleBinding": true
-            }
-          }
+          "spec": {}
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-03-27T20:46:22Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.27.0
+    categories: Big Data
+    containerImage: quay.io/skattoju/airflow-hybrid-operator:0.2.5
+    createdAt: "2023-05-04T04:06:45Z"
+    description: An operator that installs Apache Airflow (Currently requires a manual
+      webserver-secret)
+    operatorframework.io/suggested-namespace: airflow-helm
+    operators.operatorframework.io/builder: operator-sdk-v1.28.1
     operators.operatorframework.io/project_layout: hybrid.helm.sdk.operatorframework.io/v1-alpha
-  name: airflow-hybrid-operator.v0.0.1
+  name: airflow-hybrid-operator.v0.2.5
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -54,11 +31,13 @@ spec:
     - kind: AirFlow
       name: airflows.workflow.apache.org
       version: v1alpha1
-  description: experimental airflow operator
+      description: Installs Apache Airflow
+  description: Experimental airflow operator that installs apache airflow when a kind
+    Airflow custom resource is created.
   displayName: airflow-hybrid-operator
   icon:
-  - base64data: ""
-    mediatype: ""
+  - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNTguNTEgMjU4LjUxIj48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2QxZDFkMTt9LmNscy0ye2ZpbGw6IzhkOGQ4Zjt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPkFzc2V0IDQ8L3RpdGxlPjxnIGlkPSJMYXllcl8yIiBkYXRhLW5hbWU9IkxheWVyIDIiPjxnIGlkPSJMYXllcl8xLTIiIGRhdGEtbmFtZT0iTGF5ZXIgMSI+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTI5LjI1LDIwQTEwOS4xLDEwOS4xLDAsMCwxLDIwNi40LDIwNi40LDEwOS4xLDEwOS4xLDAsMSwxLDUyLjExLDUyLjExLDEwOC40NSwxMDguNDUsMCwwLDEsMTI5LjI1LDIwbTAtMjBoMEM1OC4xNiwwLDAsNTguMTYsMCwxMjkuMjVIMGMwLDcxLjA5LDU4LjE2LDEyOS4yNiwxMjkuMjUsMTI5LjI2aDBjNzEuMDksMCwxMjkuMjYtNTguMTcsMTI5LjI2LTEyOS4yNmgwQzI1OC41MSw1OC4xNiwyMDAuMzQsMCwxMjkuMjUsMFoiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0xNzcuNTQsMTAzLjQxSDE0MS42NkwxNTQuOSw2NS43NmMxLjI1LTQuNC0yLjMzLTguNzYtNy4yMS04Ljc2SDEwMi45M2E3LjMyLDcuMzIsMCwwLDAtNy40LDZsLTEwLDY5LjYxYy0uNTksNC4xNywyLjg5LDcuODksNy40LDcuODloMzYuOUwxMTUuNTUsMTk3Yy0xLjEyLDQuNDEsMi40OCw4LjU1LDcuMjQsOC41NWE3LjU4LDcuNTgsMCwwLDAsNi40Ny0zLjQ4TDE4NCwxMTMuODVDMTg2Ljg2LDEwOS4yNCwxODMuMjksMTAzLjQxLDE3Ny41NCwxMDMuNDFaIi8+PC9nPjwvZz48L3N2Zz4=
+    mediatype: image/svg+xml
   install:
     spec:
       clusterPermissions:
@@ -116,6 +95,13 @@ spec:
           resources:
           - deployments
           - statefulsets
+          - jobs
+          verbs:
+          - '*'
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
           verbs:
           - '*'
         - apiGroups:
@@ -199,7 +185,7 @@ spec:
                 - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 - --leader-election-id=airflow-hybrid-operator
-                image: quay.io/skattoju/airflow-hybrid-operator:0.0.1
+                image: quay.io/skattoju/airflow-hybrid-operator:0.2.5
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -215,8 +201,8 @@ spec:
                   periodSeconds: 10
                 resources:
                   limits:
-                    cpu: 500m
-                    memory: 128Mi
+                    cpu: "1"
+                    memory: 1Gi
                   requests:
                     cpu: 10m
                     memory: 64Mi
@@ -278,12 +264,13 @@ spec:
   - experimental
   links:
   - name: Airflow Hybrid Operator
-    url: https://airflow-hybrid-operator.domain
+    url: https://skattoju.net/airflow-hybrid-operator/
   maintainers:
   - email: skattoju@redhat.com
     name: sid
   maturity: alpha
+  minKubeVersion: "1.22.0"
   provider:
     name: airflow-hybrid-operator
     url: github.com/skattoju/airflow-hybrid-operator
-  version: 0.0.1
+  version: 0.2.5

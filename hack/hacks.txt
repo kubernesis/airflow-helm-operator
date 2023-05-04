@@ -25,7 +25,11 @@ In order to extract the required RBAC yamls from the helm chart the `helm templa
 ### Missing redis anyuid
 
 ### Static webserver serviceAccount
+The dynamic secret puts the operator in a reconcile loop that it can't escape
 `kubectl create secret generic webserver-secret --from-literal="webserver-secret-key=$(python3 -c 'import secrets; print(secrets.token_hex(16))')"`
 
 ### TODO: set suggested namespace 
 Cluster role bindings expect the operand to be deployed in the airlfow-helm namespace if this is not the case, additional clusterrolebingings would have to manually be created.
+
+### TODO: automate web ui access
+`oc expose service/airflow-helm-webserver`
