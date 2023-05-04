@@ -16,3 +16,22 @@ resources:
 - auth_proxy_role.yaml
 - auth_proxy_role_binding.yaml
 - auth_proxy_client_clusterrole.yaml
+# extra service accounts
+#- airflow-helm-create-user-job_ServiceAccount.yml
+#- airflow-helm-migrate-database-job_ServiceAccount.yml
+#- airflow-helm-pod-launcher-role_Role.yml
+#- airflow-helm-pod-launcher-rolebinding_RoleBinding.yml
+#- airflow-helm-pod-log-reader-role_Role.yml
+#- airflow-helm-pod-log-reader-rolebinding_RoleBinding.yml
+#- airflow-helm-postgresql_Role.yml
+#- airflow-helm-postgresql_RoleBinding.yml
+#- airflow-helm-postgresql_ServiceAccount.yml
+#- airflow-helm-redis_Role.yml
+#- airflow-helm-redis_RoleBinding.yml
+#- airflow-helm-redis_ServiceAccount.yml
+#- airflow-helm-scc-rolebinding_RoleBinding.yml
+#- airflow-helm-scheduler_ServiceAccount.yml
+#- airflow-helm-statsd_ServiceAccount.yml
+#- airflow-helm-triggerer_ServiceAccount.yml
+#- airflow-helm-webserver_ServiceAccount.yml
+#- airflow-helm-worker_ServiceAccount.yml

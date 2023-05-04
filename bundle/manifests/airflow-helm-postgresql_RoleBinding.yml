@@ -1,23 +1,4 @@
 ---
-# Source: airflow/charts/postgresql/templates/rolebinding.yaml
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: airflow-helm-postgresql
-  labels:
-    app.kubernetes.io/name: postgresql
-    helm.sh/chart: postgresql-12.1.9
-    app.kubernetes.io/instance: airflow-helm
-    app.kubernetes.io/managed-by: Helm
-roleRef:
-  kind: Role
-  name: airflow-helm-postgresql
-  apiGroup: rbac.authorization.k8s.io
-subjects:
-  - kind: ServiceAccount
-    name: airflow-helm-postgresql
-    namespace: "airflow-helm"
-# Source: airflow/templates/rbac/pod-launcher-rolebinding.yaml
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -34,3 +15,21 @@ subjects:
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: airflow-helm-postgresql
+  labels:
+    release: airflow-helm
+    helm.sh/chart: postgresql-12.1.9
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/instance: airflow-helm
+    app.kubernetes.io/managed-by: Helm
+roleRef:
+  kind: Role
+  name: airflow-helm-postgresql
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: airflow-helm-postgresql
+    namespace: "airflow-helm"
