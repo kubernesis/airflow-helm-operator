@@ -112,7 +112,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 ##@ Build
 .PHONY: run
 run: manifests generate fmt vet ## Run against the configured Kubernetes cluster in ~/.kube/config
-	helm-operator run --zap-devel
+	go run main.go
 #	$(HELM_OPERATOR) run
 	
 .PHONY: docker-build

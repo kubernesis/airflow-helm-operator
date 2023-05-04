@@ -17,6 +17,8 @@ limitations under the License.
 package main
 
 import (
+	"context"
+	"crypto/rand"
 	"flag"
 	"os"
 	"runtime"
@@ -26,12 +28,18 @@ import (
 	"github.com/operator-framework/helm-operator-plugins/pkg/annotation"
 	"github.com/operator-framework/helm-operator-plugins/pkg/reconciler"
 	"github.com/operator-framework/helm-operator-plugins/pkg/watches"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"helm.sh/helm/v3/pkg/chartutil"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrlruntime "k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	//+kubebuilder:scaffold:imports
@@ -104,6 +112,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// generate webserver secret
+	generateAppSecret()
+
+	// instantiate translator to populate defaults for OpenShift
+	overridesYaml := defaultTranslator{}
+
 	for _, w := range ws {
 		// Register controller with the factory
 		reconcilePeriod := defaultReconcilePeriod
@@ -120,6 +134,7 @@ func main() {
 			reconciler.WithChart(*w.Chart),
 			reconciler.WithGroupVersionKind(w.GroupVersionKind),
 			reconciler.WithOverrideValues(w.OverrideValues),
+			reconciler.WithValueTranslator(&overridesYaml),
 			reconciler.SkipDependentWatches(w.WatchDependentResources != nil && !*w.WatchDependentResources),
 			reconciler.WithMaxConcurrentReconciles(maxConcurrentReconciles),
 			reconciler.WithReconcilePeriod(reconcilePeriod),
@@ -143,4 +158,51 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// defaultTranslator implements the Value Translator Interface
+type defaultTranslator struct{}
+
+// Translate sets default values in the helm chart that cannot be set via the watches.yaml file
+func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstructured.Unstructured) (chartutil.Values, error) {
+	// Read override values that should always be applied in the context of this operator
+	OverridesYaml, err := os.ReadFile("overrides.yaml")
+	if err != nil {
+		ctrl.Log.Error(err, "Error reading overrides.yaml")
+		return nil, err
+	}
+	AirFlowOverrides := &unstructured.Unstructured{Object: map[string]interface{}{"spec": map[string]interface{}{}}}
+	err = yaml.Unmarshal(OverridesYaml, &AirFlowOverrides)
+	if err != nil {
+		ctrl.Log.Error(err, "Error unmarshalling overrides.yaml")
+		return nil, err
+	}
+	chartValues := AirFlowOverrides.Object["spec"].(map[string]interface{})
+	return chartValues, err
+}
+
+func generateAppSecret() {
+	var SecretLength int = 16
+	token := make([]byte, SecretLength)
+	_, err := rand.Read(token)
+	if err != nil {
+		setupLog.Error(err, "Error generating random token")
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "webserver-secret",
+			Namespace: "airflow-helm",
+		},
+		Data: map[string][]byte{
+			"webserver-secret-key": token,
+		},
+	}
+	tmpClient, err := client.New(ctrl.GetConfigOrDie(), client.Options{})
+	namespacedClient := client.NewNamespacedClient(tmpClient, "airflow-helm")
+	if err != nil {
+		setupLog.Error(err, "Unable to instantiate runtime client to create app secret")
+		os.Exit(1)
+	}
+	setupLog.Info("Creating webserver secret in namespace airflow-helm")
+	namespacedClient.Create(context.Background(), secret)
 }
