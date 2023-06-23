@@ -17,8 +17,12 @@ bin
 
 # editor and IDE paraphernalia
 .idea
+.vscode
 *.swp
 *.swo
 *~
 .vscode
+
+# macos
+.DS_Store
 
