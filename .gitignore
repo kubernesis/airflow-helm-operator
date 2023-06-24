@@ -26,3 +26,7 @@ bin
 # macos
 .DS_Store
 
+# potato
+.DS_Store
+bundle/.DS_Store
+
