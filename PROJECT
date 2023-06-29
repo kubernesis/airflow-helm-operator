@@ -4,8 +4,8 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: airflow-hybrid-operator
-repo: github.com/skattoju/airflow-hybrid-operator
+projectName: airflow-helm-operator
+repo: github.com/skattoju/airflow-helm-operator
 resources:
 - api:
     crdVersion: v1
