@@ -45,7 +45,7 @@ spec:
   - data workflow
   links:
   - name: Airflow Helm Operator
-    url: https://airflow-helm-operator.domain
+    url: https://github.com/skattoju/airflow-helm-operator
   maturity: alpha
   minKubeVersion: 1.23.0
   provider:
