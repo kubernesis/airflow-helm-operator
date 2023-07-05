@@ -16,7 +16,7 @@ metadata:
     capabilities: Basic Install
     categories: Big Data
     containerImage: quay.io/opdev/airflow-helm-operator:0.0.1
-    createdAt: "2023-06-28T20:02:04Z"
+    createdAt: "2023-07-04T16:53:41Z"
     description: An experimental operator that installs Apache Airflow.
     operatorframework.io/suggested-namespace: airflow-helm
     operators.operatorframework.io/builder: operator-sdk-v1.30.0
@@ -266,7 +266,7 @@ spec:
   - data workflow
   links:
   - name: Airflow Helm Operator
-    url: https://airflow-helm-operator.domain
+    url: https://github.com/skattoju/airflow-helm-operator
   maturity: alpha
   minKubeVersion: 1.23.0
   provider:
