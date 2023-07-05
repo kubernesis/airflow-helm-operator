@@ -11,7 +11,7 @@ spec: {
 }
 ```
 # accessing the ui
-The UI can be accessed via the airflow-helm-webserver. Typically you would expose this via a loadbalancer, however, if testing locally in something like KIND you can use something like the following
+The UI can be accessed via the airflow-helm-webserver. Typically you would expose this via a loadbalancer, however, if testing locally in something like KIND you can reach the ui at localhost:8080 by doing something like the following
 ```
 kubectl port-forward service/airflow-helm-webserver 8080
 ```
