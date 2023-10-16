@@ -1,0 +1,5 @@
+apiVersion: workflow.apache.org/v1alpha1
+kind: AirFlow
+metadata:
+  name: airflow-helm
+spec: {}

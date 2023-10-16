@@ -4,9 +4,6 @@ metadata:
   name: airflow-helm
 spec:
   webserver:
-    serviceAccount:
-      create: false
-      name: airflow-helm-webserver
     replicas: 2
     readinessProbe:
       initialDelaySeconds: 45
