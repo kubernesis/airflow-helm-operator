@@ -19,7 +19,9 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"runtime"
 	"time"
@@ -168,6 +170,9 @@ type defaultTranslator struct{}
 
 // Translate sets default values in the helm chart that cannot be set via the watches.yaml file
 func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstructured.Unstructured) (chartutil.Values, error) {
+	JL := ctrl.Log.WithName("JOSELOGGER")
+	JL.Info("STARTING REC")
+	defer JL.Info("ENDING REC")
 	ctrl.Log.WithName("translate-values")
 	// Read values from custom resource
 	tmpClient, err := client.New(ctrl.GetConfigOrDie(), client.Options{})
@@ -182,6 +187,7 @@ func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstruc
 	}
 	// Retrieve User defined spec
 	AirFlowCROptions := &unstructured.Unstructured{Object: map[string]interface{}{"spec": map[string]interface{}{}}}
+
 	AirFlowCROptions.SetGroupVersionKind(schema.GroupVersionKind{Group: "workflow.apache.org", Version: "v1alpha1", Kind: "AirFlow"})
 	err = namespacedClient.Get(context.TODO(), airflowName, AirFlowCROptions)
 	if err != nil {
@@ -202,14 +208,65 @@ func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstruc
 		return nil, err
 	}
 
-	//Match resourceVersion to the object that triggered the reconcile operation
-	crMetadata := AirFlowCROptions.Object["metadata"].(map[string]interface{})
-	AirFlowOverrides.Object["metadata"] = crMetadata
+	overridesb, err := json.MarshalIndent(AirFlowOverrides, "", "    ")
+	if err != nil {
+		JL.Info("COULD NOT MARSHAL Overrides")
+	} else {
+		fmt.Fprintln(os.Stdout, string(overridesb))
+	}
 
+	// THE MAGIC HAPPENS HERE. WE TAKE OVERRIDES AS OUR BASE, and MARSHAL
+	// THE USER CR SPEC INTO IT. NEW KEYS PERSIST, EXISTING KEYS THAT ARE MODIFIED
+	// PERSIST, BASE KEY REMOVALS DO NOT OCCUR.
+
+	baseSpec := AirFlowOverrides.Object["spec"].(map[string]interface{})
+	baseSpecB, err := json.MarshalIndent(baseSpec, "", "    ")
+	if err != nil {
+		JL.Info("FAILED")
+	} else {
+		fmt.Fprintln(os.Stdout, string(baseSpecB))
+	}
+	newSpecIface := AirFlowCROptions.Object["spec"]
+	b, _ := json.Marshal(newSpecIface)
+	json.Unmarshal(b, &baseSpec)
+
+	newSpecB, err := json.MarshalIndent(baseSpec, "", "    ")
+	if err != nil {
+		JL.Info("FAILED")
+	} else {
+		fmt.Fprintln(os.Stdout, string(newSpecB))
+	}
+
+	// THE MAGIC ENDS HERE
+
+	//Match resourceVersion to the object that triggered the reconcile operation
+	// crMetadata := AirFlowCROptions.Object["metadata"].(map[string]interface{})
+	// AirFlowOverrides.Object["metadata"] = crMetadata
+
+	// MORE MAGIC HERE: create the patch from the user Cr, then set the spec to be what it you want it to be.
+	patch := client.MergeFrom(AirFlowCROptions.DeepCopy())
+	AirFlowCROptions.Object["spec"] = baseSpec
+	patchD, err := patch.Data(AirFlowCROptions)
+	if err != nil {
+		JL.Info("Getting PatchD didn't work")
+	} else {
+		JL.Info("PATCH DATA", "data", string(patchD))
+	}
+
+	// FINAL MAGIC HERE:
 	// Merge userValues and overrideValues
-	err = namespacedClient.Patch(ctx, AirFlowOverrides, client.MergeFrom(AirFlowCROptions))
+	err = namespacedClient.Patch(ctx, AirFlowCROptions, patch)
+
 	if err != nil {
 		ctrl.Log.Error(err, "Error merging overrides into spec")
+	}
+
+	JL.Info("PRINTING AirFlowOverrides after Patch")
+	zxcv, err := json.MarshalIndent(AirFlowOverrides, "", "    ")
+	if err != nil {
+		JL.Info("COULD NOT MARSHAL Overrides")
+	} else {
+		fmt.Fprintln(os.Stdout, string(zxcv))
 	}
 
 	// Retrieve merged object
