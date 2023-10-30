@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"flag"
 	"os"
 	"runtime"
@@ -32,7 +33,7 @@ import (
 	"github.com/operator-framework/helm-operator-plugins/pkg/watches"
 	"helm.sh/helm/v3/pkg/chartutil"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apim_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrlruntime "k8s.io/apimachinery/pkg/runtime"
@@ -173,11 +174,11 @@ func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstruc
 
 	// Read values from custom resource
 	tmpClient, err := client.New(ctrl.GetConfigOrDie(), client.Options{})
-	namespacedClient := client.NewNamespacedClient(tmpClient, "airflow-helm")
 	if err != nil {
 		log.Error(err, "Unable to instantiate runtime client to inject default values")
 		os.Exit(1)
 	}
+	namespacedClient := client.NewNamespacedClient(tmpClient, "airflow-helm")
 	airflowName := client.ObjectKey{
 		Name:      "airflow-helm",
 		Namespace: "airflow-helm",
@@ -188,6 +189,10 @@ func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstruc
 	if err != nil {
 		log.Error(err, "Unable to retrieve user defined airflow-helm object")
 		return nil, err
+	}
+	if _, ok := AirFlowCROptions.Object["spec"].(map[string]interface{}); !ok {
+		err = errors.New("object missing spec field")
+		log.Error(err, "custom resource is missing a spec")
 	}
 
 	// Read override values that should always be applied by default in the context of this operator
@@ -247,7 +252,7 @@ func (*ensureAppSecret) Exec(unstructured *unstructured.Unstructured, values cha
 	secretObj := &corev1.Secret{}
 	err = namespacedClient.Get(context.TODO(), secretName, secretObj)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apim_errors.IsNotFound(err) {
 			return generateAppSecret(context.TODO(), namespacedClient, log)
 		}
 		log.Error(err, "Unable to retrieve app secret")
@@ -286,7 +291,7 @@ func generateAppSecret(ctx context.Context, client client.Client, log logr.Logge
 	log.Info("Creating webserver secret in namespace airflow-helm")
 	err = client.Create(ctx, secret)
 	if err != nil {
-		if errors.IsAlreadyExists(err) {
+		if apim_errors.IsAlreadyExists(err) {
 			log.Info("webserver secret already exists in namespace airflow-helm")
 			return nil
 		}
