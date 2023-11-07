@@ -10,16 +10,30 @@ metadata:
           "metadata": {
             "name": "airflow-helm"
           },
-          "spec": {}
+          "spec": {
+            "webserver": {
+              "livenessProbe": {
+                "initialDelaySeconds": 60
+              },
+              "readinessProbe": {
+                "initialDelaySeconds": 45
+              },
+              "replicas": 2,
+              "serviceAccount": {
+                "create": false,
+                "name": "airflow-helm-webserver"
+              }
+            }
+          }
         }
       ]
     capabilities: Basic Install
     categories: Big Data
     containerImage: quay.io/opdev/airflow-helm-operator:0.0.1
-    createdAt: "2023-07-04T16:53:41Z"
+    createdAt: "2023-11-14T17:39:53Z"
     description: An experimental operator that installs Apache Airflow.
     operatorframework.io/suggested-namespace: airflow-helm
-    operators.operatorframework.io/builder: operator-sdk-v1.30.0
+    operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: hybrid.helm.sdk.operatorframework.io/v1-alpha
   name: airflow-helm-operator.v0.0.1
   namespace: placeholder

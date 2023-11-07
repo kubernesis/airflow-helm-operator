@@ -37,3 +37,4 @@ subjects:
   - kind: ServiceAccount
     name: airflow-helm-create-user-job
     namespace: "airflow-helm"
+
