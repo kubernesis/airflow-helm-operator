@@ -19,6 +19,8 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
+	"errors"
 	"flag"
 	"os"
 	"runtime"
@@ -31,10 +33,11 @@ import (
 	"github.com/operator-framework/helm-operator-plugins/pkg/watches"
 	"helm.sh/helm/v3/pkg/chartutil"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apim_errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrlruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -167,19 +170,67 @@ type defaultTranslator struct{}
 
 // Translate sets default values in the helm chart that cannot be set via the watches.yaml file
 func (*defaultTranslator) Translate(ctx context.Context, overrideValues *unstructured.Unstructured) (chartutil.Values, error) {
-	// Read override values that should always be applied in the context of this operator
+	log := ctrl.Log.WithName("translate-values")
+
+	// Read values from custom resource
+	tmpClient, err := client.New(ctrl.GetConfigOrDie(), client.Options{})
+	if err != nil {
+		log.Error(err, "Unable to instantiate runtime client to inject default values")
+		os.Exit(1)
+	}
+	namespacedClient := client.NewNamespacedClient(tmpClient, "airflow-helm")
+	airflowName := client.ObjectKey{
+		Name:      "airflow-helm",
+		Namespace: "airflow-helm",
+	}
+	AirFlowCROptions := &unstructured.Unstructured{Object: map[string]interface{}{"spec": map[string]interface{}{}}}
+	AirFlowCROptions.SetGroupVersionKind(schema.GroupVersionKind{Group: "workflow.apache.org", Version: "v1alpha1", Kind: "AirFlow"})
+	err = namespacedClient.Get(context.TODO(), airflowName, AirFlowCROptions)
+	if err != nil {
+		log.Error(err, "Unable to retrieve user defined airflow-helm object")
+		return nil, err
+	}
+	if _, ok := AirFlowCROptions.Object["spec"].(map[string]interface{}); !ok {
+		err = errors.New("object missing spec field")
+		log.Error(err, "custom resource is missing a spec")
+	}
+
+	// Read override values that should always be applied by default in the context of this operator
 	OverridesYaml, err := os.ReadFile("overrides.yaml")
 	if err != nil {
-		ctrl.Log.Error(err, "Error reading overrides.yaml")
+		log.Error(err, "Error reading overrides.yaml")
 		return nil, err
 	}
 	AirFlowOverrides := &unstructured.Unstructured{Object: map[string]interface{}{"spec": map[string]interface{}{}}}
 	err = yaml.Unmarshal(OverridesYaml, &AirFlowOverrides)
 	if err != nil {
-		ctrl.Log.Error(err, "Error unmarshalling overrides.yaml")
+		log.Error(err, "Error unmarshalling overrides.yaml")
 		return nil, err
 	}
-	chartValues := AirFlowOverrides.Object["spec"].(map[string]interface{})
+
+	// "Unmarshal" AirFlowCROptions.spec onto AirFlowOverrides.spec (which is the "base")
+	baseSpec := AirFlowOverrides.Object["spec"].(map[string]interface{})
+	userSpecIFace, _ := json.Marshal(AirFlowCROptions.Object["spec"])
+	_ = json.Unmarshal(userSpecIFace, &baseSpec)
+	// Create Patch from User CR
+	patch := client.MergeFrom(AirFlowCROptions.DeepCopy())
+	// Swap out user spec with merged spec
+	AirFlowCROptions.Object["spec"] = baseSpec
+	// Send patch request
+	err = namespacedClient.Patch(ctx, AirFlowCROptions, patch)
+	if err != nil {
+		log.Error(err, "Error merging overrides into spec")
+	}
+
+	// Retrieve merged object
+	err = namespacedClient.Get(ctx, airflowName, AirFlowCROptions)
+	if err != nil {
+		log.Error(err, "Unable to retrieve merged airflow-helm object")
+		return nil, err
+	}
+
+	// Pass in merged object as chart values
+	chartValues := AirFlowCROptions.Object["spec"].(map[string]interface{})
 	return chartValues, err
 }
 
@@ -201,7 +252,7 @@ func (*ensureAppSecret) Exec(unstructured *unstructured.Unstructured, values cha
 	secretObj := &corev1.Secret{}
 	err = namespacedClient.Get(context.TODO(), secretName, secretObj)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if apim_errors.IsNotFound(err) {
 			return generateAppSecret(context.TODO(), namespacedClient, log)
 		}
 		log.Error(err, "Unable to retrieve app secret")
@@ -240,7 +291,7 @@ func generateAppSecret(ctx context.Context, client client.Client, log logr.Logge
 	log.Info("Creating webserver secret in namespace airflow-helm")
 	err = client.Create(ctx, secret)
 	if err != nil {
-		if errors.IsAlreadyExists(err) {
+		if apim_errors.IsAlreadyExists(err) {
 			log.Info("webserver secret already exists in namespace airflow-helm")
 			return nil
 		}
