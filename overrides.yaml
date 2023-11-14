@@ -21,6 +21,8 @@ spec:
     serviceAccount:
       create: false
       name: airflow-helm-postgresql
+    commonLabels:
+      release: airflow-helm
   redis:
     serviceAccount:
       create: false
