@@ -140,6 +140,7 @@ func main() {
 			reconciler.WithOverrideValues(w.OverrideValues),
 			reconciler.WithValueTranslator(&overridesYaml),
 			reconciler.WithPreHook(&prehookSecret),
+			reconciler.WithSelector(*w.Selector),
 			reconciler.SkipDependentWatches(w.WatchDependentResources != nil && !*w.WatchDependentResources),
 			reconciler.WithMaxConcurrentReconciles(maxConcurrentReconciles),
 			reconciler.WithReconcilePeriod(reconcilePeriod),
